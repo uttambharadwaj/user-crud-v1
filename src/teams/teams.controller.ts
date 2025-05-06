@@ -31,4 +31,33 @@ export class TeamsController {
   remove(@Param('id') id: string) {
     return this.teamsService.remove(+id);
   }
+
+  @Post(':id/members/:userId')
+  addMember(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.teamsService.addMember(+id, +userId);
+  }
+
+  @Delete(':id/members/:userId')
+  removeMember(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.teamsService.removeMember(+id, +userId);
+  }
+
+  @Get(':id/members')
+  getMembers(@Param('id') id: string) {
+    return this.teamsService.getMembers(+id);
+  }
+
+  @Post(':id/captain/:userId')
+  setCaptain(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.teamsService.setCaptain(+id, +userId);
+  }
 }
