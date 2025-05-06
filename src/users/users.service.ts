@@ -6,6 +6,30 @@ import { User } from './entities/user.entity';
 @Injectable()
 export class UsersService {
   private users: User[] = [];
+
+  OnModuleInit() {// Seed initial users
+    const initialUsers: CreateUserDto[] = [
+      {
+        name: 'John Doe',
+        email: 'john@example.com',
+        role: 'admin',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        name: 'Jane Smith',
+        email: 'jane@example.com',
+        role: 'user',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ];
+
+    initialUsers.forEach(user => this.create(user));
+  }
+
   create(createUserDto: CreateUserDto) {
     const newUser: User = {
       id: this.users.length  + 1,
