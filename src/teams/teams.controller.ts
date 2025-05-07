@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { ApiTags, ApiQuery } from '@nestjs/swagger';
 import { TeamsService } from './teams.service';
 import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
@@ -16,8 +16,17 @@ export class TeamsController {
   }
 
   @Get()
-  findAll() {
-    return this.teamsService.findAll();
+  @ApiQuery({ name: 'page', required: false, example: 1, description: 'Page number for pagination' })
+  @ApiQuery({ name: 'limit', required: false, example: 10, description: 'Number of items per page' })
+  @ApiQuery({ name: 'sortBy', required: false, example: 'id', description: 'Field to sort by' })
+  @ApiQuery({ name: 'sortOrder', required: false, example: 'asc', description: 'Sort order: asc or desc' })
+  findAll(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+  ) {
+    return this.teamsService.findAll({ page, limit, sortBy, sortOrder });
   }
 
   @Get(':id')

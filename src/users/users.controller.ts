@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { ApiTags, ApiQuery } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -15,8 +15,17 @@ export class UsersController {
   }
 
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  @ApiQuery({ name: 'page', required: false, example: 1, description: 'Page number for pagination' })
+  @ApiQuery({ name: 'limit', required: false, example: 10, description: 'Number of items per page' })
+  @ApiQuery({ name: 'sortBy', required: false, example: 'name', description: 'Field to sort by' })
+  @ApiQuery({ name: 'sortOrder', required: false, example: 'asc', description: 'Sort order: asc or desc' })
+  findAll(
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
+  ) {
+    return this.usersService.findAll({ page, limit, sortBy, sortOrder });
   }
 
   @Get(':id')

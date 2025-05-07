@@ -99,8 +99,27 @@ export class TeamsService {
     return this.toTeamsResponseDto(this.teamsRepository.create(createTeamDto), 'create');
   }
 
-  findAll() {
-    return this.teamsRepository.findAll().map(team => this.toTeamsResponseDto(team, 'findAll'));
+  findAll({ page = 1, limit = 10, sortBy = 'id', sortOrder = 'asc' }: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}) {
+    let teams = this.teamsRepository.findAll();
+    // Sorting
+    if (sortBy) {
+      teams = teams.sort((a, b) => {
+        if (a[sortBy] < b[sortBy]) return sortOrder === 'asc' ? -1 : 1;
+        if (a[sortBy] > b[sortBy]) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    // Pagination
+    const start = (Number(page) - 1) * Number(limit);
+    const end = start + Number(limit);
+    const paginated = teams.slice(start, end);
+    return {
+      data: paginated.map(team => this.toTeamsResponseDto(team, 'findAll')),
+      total: teams.length,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(teams.length / Number(limit)),
+    };
   }
 
   findOne(id: number) {

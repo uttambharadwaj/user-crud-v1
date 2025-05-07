@@ -29,8 +29,27 @@ export class UsersService {
     return this.usersRepository.create(createUserDto);
   }
 
-  findAll() {
-    return this.usersRepository.findAll();
+  findAll({ page = 1, limit = 10, sortBy = 'id', sortOrder = 'asc' }: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}) {
+    let users = this.usersRepository.findAll();
+    // Sorting
+    if (sortBy) {
+      users = users.sort((a, b) => {
+        if (a[sortBy] < b[sortBy]) return sortOrder === 'asc' ? -1 : 1;
+        if (a[sortBy] > b[sortBy]) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    // Pagination
+    const start = (Number(page) - 1) * Number(limit);
+    const end = start + Number(limit);
+    const paginated = users.slice(start, end);
+    return {
+      data: paginated,
+      total: users.length,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(users.length / Number(limit)),
+    };
   }
 
   findOne(id: number) {
