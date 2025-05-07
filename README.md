@@ -28,7 +28,7 @@ npm run start:prod
 ```
 
 ### API Documentation
-Swagger UI is available at: [http://localhost:3000/api](http://localhost:3000/api)
+Swagger UI is available at: [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 
 ## Authentication
 All routes are protected by an API key (`x-api-key: dummy-key`) header by default. To make a route public, use the `@Public()` decorator.
@@ -56,7 +56,6 @@ Headers: x-api-key: dummy-key
 
 ## Testing
 ```bash
-npm run test
 npm run test:e2e
 ```
 
