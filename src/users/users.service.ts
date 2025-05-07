@@ -7,7 +7,7 @@ import { UsersRepository } from './users.repository';
 export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
-  onModuleInit() {
+  async onModuleInit() {
     const initialUsers: CreateUserDto[] = [
       {
         name: 'John Doe',
@@ -22,14 +22,14 @@ export class UsersService {
         isActive: true
       },
     ];
-    this.usersRepository.seed(initialUsers);
+    await Promise.all(initialUsers.map(user => this.create(user)));
   }
 
-  create(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto) {
     return this.usersRepository.create(createUserDto);
   }
 
-  findAll({ page = 1, limit = 10, sortBy = 'id', sortOrder = 'asc' }: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}) {
+  async findAll({ page = 1, limit = 10, sortBy = 'id', sortOrder = 'asc' }: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' } = {}) {
     let users = this.usersRepository.findAll();
     // Sorting
     if (sortBy) {
@@ -52,7 +52,7 @@ export class UsersService {
     };
   }
 
-  findOne(id: number) {
+  async findOne(id: number) {
     const user = this.usersRepository.findOne(id);
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
@@ -60,7 +60,7 @@ export class UsersService {
     return user;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
+  async update(id: number, updateUserDto: UpdateUserDto) {
     const updatedUser = this.usersRepository.update(id, updateUserDto);
     if (!updatedUser) {
       throw new NotFoundException(`User with id ${id} not found`);
@@ -68,7 +68,7 @@ export class UsersService {
     return updatedUser;
   }
 
-  remove(id: number) {
+  async remove(id: number) {
     const deletedUser = this.usersRepository.remove(id);
     if (!deletedUser) {
       throw new NotFoundException(`User with id ${id} not found`);
