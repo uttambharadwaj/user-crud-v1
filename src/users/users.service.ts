@@ -1,74 +1,59 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './entities/user.entity';
+import { UsersRepository } from './users.repository';
 
 @Injectable()
 export class UsersService {
-  private users: User[] = [];
+  constructor(private readonly usersRepository: UsersRepository) {}
 
-  OnModuleInit() {// Seed initial users
+  onModuleInit() {
     const initialUsers: CreateUserDto[] = [
       {
         name: 'John Doe',
         email: 'john@example.com',
         role: 'admin',
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        isActive: true
       },
       {
         name: 'Jane Smith',
         email: 'jane@example.com',
         role: 'user',
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
+        isActive: true
+      },
     ];
-
-    initialUsers.forEach(user => this.create(user));
+    this.usersRepository.seed(initialUsers);
   }
 
   create(createUserDto: CreateUserDto) {
-    const newUser: User = {
-      id: this.users.length  + 1,
-      ...createUserDto,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.users.push(newUser);
-    return newUser;
+    return this.usersRepository.create(createUserDto);
   }
 
   findAll() {
-    return this.users;
+    return this.usersRepository.findAll();
   }
 
   findOne(id: number) {
-    const user = this.users.find(user => user.id === id);
+    const user = this.usersRepository.findOne(id);
     if (!user) {
-      throw new Error(`User with id ${id} not found`);
+      throw new NotFoundException(`User with id ${id} not found`);
     }
     return user;
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
-    const userIndex = this.users.findIndex(user => user.id === id);
-    if (userIndex === -1) {
-      throw new Error(`User with id ${id} not found`);
+    const updatedUser = this.usersRepository.update(id, updateUserDto);
+    if (!updatedUser) {
+      throw new NotFoundException(`User with id ${id} not found`);
     }
-    const updatedUser = { ...this.users[userIndex], ...updateUserDto, updatedAt: new Date() };
-    this.users[userIndex] = updatedUser;
     return updatedUser;
   }
 
   remove(id: number) {
-    const userIndex = this.users.findIndex(user => user.id === id);
-    if (userIndex === -1) {
-      throw new Error(`User with id ${id} not found`);
+    const deletedUser = this.usersRepository.remove(id);
+    if (!deletedUser) {
+      throw new NotFoundException(`User with id ${id} not found`);
     }
-    const deletedUser = this.users.splice(userIndex, 1);
-    return deletedUser[0];
+    return deletedUser;
   }
 }

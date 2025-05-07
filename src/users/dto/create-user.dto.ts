@@ -1,18 +1,15 @@
-export class CreateUserDto {
-    name: string;
-    email: string;
-    role: string;
-    isActive: boolean;
-    createdAt: Date;
-    updatedAt: Date;
+import { ApiProperty } from '@nestjs/swagger';
 
-    // create example input:
-    // {
-    //     "name": "John Doe",
-    //     "email": "test@test.com",
-    //     "role": "admin",
-    //     "isActive": true,
-    //     "createdAt": "2023-10-01T00:00:00.000Z",
-    //     "updatedAt": "2023-10-01T00:00:00.000Z"
-    // }
+export class CreateUserDto {
+    @ApiProperty({ example: 'John Doe' })
+    name: string;
+
+    @ApiProperty({ example: 'test@test.com' })
+    email: string;
+
+    @ApiProperty({ example: 'admin', enum: ['admin', 'user'] })
+    role: string;
+
+    @ApiProperty({ example: true })
+    isActive: boolean;
 }

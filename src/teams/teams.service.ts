@@ -3,189 +3,190 @@ import { CreateTeamDto } from './dto/create-team.dto';
 import { UpdateTeamDto } from './dto/update-team.dto';
 import { Team } from './entities/team.entity';
 import { UsersService } from '../users/users.service';
+import { TeamsRepository } from './teams.repository';
+import { TeamsResponseDto } from './dto/teams-response.dto';
 
 @Injectable()
 export class TeamsService {
-  constructor(private readonly usersService: UsersService) {}
-
-  private teams: Team[] = [];
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly teamsRepository: TeamsRepository,
+  ) {}
 
   onModuleInit() {
-    // Seed initial teams
     const initialTeams: CreateTeamDto[] = [
       {
         name: 'Engineering Team',
-        creatorId: 1, // References John Doe
         description: 'Main engineering team',
         isActive: true,
-        currentCaptainId: 1
+        currentCaptainId: 1,
       },
       {
         name: 'Design Team',
-        creatorId: 2, // References Jane Smith
         description: 'Product design team',
         isActive: true,
-        currentCaptainId: 2
-      }
+        currentCaptainId: 2,
+      },
     ];
+    this.teamsRepository.seed(initialTeams);
+  }
 
-    initialTeams.forEach(team => {
-      const newTeam: Team = {
-        name: team.name,
-        creatorId: team.creatorId,
-        id: this.teams.length + 1,
-        createdDate: new Date(),
-        description: team.description,
-        isActive: team.isActive ?? true,
-        currentCaptainId: team.currentCaptainId,
-        members: []
-      };
-      this.teams.push(newTeam);
-    });
+  private toPartialUser(user: any) {
+    if (!user) return undefined;
+    return {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    };
+  }
+
+  private toTeamsResponseDto(team: Team): TeamsResponseDto {
+
+    const currentCaptain = (() => {
+      if (!team.currentCaptainId) return 'Not Assigned';
+      try {
+        return this.toPartialUser(this.usersService.findOne(team.currentCaptainId));
+      } catch {
+        return 'Not Assigned';
+      }
+    })();
+
+    const members: any[] = (team.members || []).map(userId => {
+      try {
+        return this.toPartialUser(this.usersService.findOne(userId));
+      } catch {
+        return undefined;
+      }
+    }).filter(Boolean);
+
+    return {
+      teamName: team.name,
+      teamId: team.id,
+      teamDescription: team.description ?? '',
+      isActive: team.isActive ?? true,
+      totalMembers: members.length,
+      currentCaptain,
+      createdDate: team.createdDate,
+      members,
+    };
   }
 
   create(createTeamDto: CreateTeamDto) {
-    const newTeam: Team = {
-      name: createTeamDto.name,
-      creatorId: createTeamDto.creatorId,
-      id: this.teams.length + 1,
-      createdDate: new Date(),
-      description: createTeamDto.description,
-      isActive: createTeamDto.isActive ?? true,
-      currentCaptainId: createTeamDto.currentCaptainId,
-      members: []
-    };
-    this.teams.push(newTeam);
-    return newTeam;
+    const team = this.teamsRepository.create(createTeamDto);
+    return this.toTeamsResponseDto(team);
   }
 
   findAll() {
-    return this.teams.map(team => ({
-      id: team.id,
-      name: team.name,
-      description: team.description,
-      currentCaptainId: team.currentCaptainId
-    }));
+    return this.teamsRepository.findAll().map(team => this.toTeamsResponseDto(team));
   }
 
   findOne(id: number) {
-    const team = this.teams.find(team => team.id === id);
+    const team = this.teamsRepository.findOne(id);
     if (!team) {
-      throw new Error(`Team with id ${id} not found`);
+      throw new NotFoundException(`Team with id ${id} not found`);
     }
-    return team;
+    return this.toTeamsResponseDto(team);
   }
 
   update(id: number, updateTeamDto: UpdateTeamDto) {
-    const teamIndex = this.teams.findIndex(team => team.id === id);
-    if (teamIndex === -1) {
-      throw new Error(`Team with id ${id} not found`);
+    const updatedTeam = this.teamsRepository.update(id, updateTeamDto);
+    if (!updatedTeam) {
+      throw new NotFoundException(`Team with id ${id} not found`);
     }
-    
-    const updatedTeam = {
-      ...this.teams[teamIndex],
-      ...updateTeamDto,
-    };
-    this.teams[teamIndex] = updatedTeam;
-    return updatedTeam;
+    return this.toTeamsResponseDto(updatedTeam);
   }
 
   remove(id: number) {
-    const teamIndex = this.teams.findIndex(team => team.id === id);
-    if (teamIndex === -1) {
-      throw new Error(`Team with id ${id} not found`);
+    const deletedTeam = this.teamsRepository.remove(id);
+    if (!deletedTeam) {
+      throw new NotFoundException(`Team with id ${id} not found`);
     }
-    const deletedTeam = this.teams.splice(teamIndex, 1);
-    return deletedTeam[0];
+    return this.toTeamsResponseDto(deletedTeam);
   }
 
-  // Member Management Methods
-  // These methods assume that the members are represented by their user IDs
-
   addMember(teamId: number, userId: number) {
-    const team = this.findOne(teamId);
-    
+    const teamEntity = this.teamsRepository.findOne(teamId);
+    if (!teamEntity) {
+      throw new NotFoundException(`Team with id ${teamId} not found`);
+    }
     try {
-      // Verify user exists
-      const user = this.usersService.findOne(userId);
-      
-      if (!team.members) {
-        team.members = [];
+      this.usersService.findOne(userId);
+      if (!teamEntity.members) {
+        teamEntity.members = [];
       }
-      
-      // Check if user is already a member
-      if (team.members.includes(userId)) {
+      if (teamEntity.members.includes(userId)) {
         throw new Error(`User ${userId} is already a member of team ${teamId}`);
       }
-      
-      // Add user to team members
-      team.members.push(userId);
-      return team;
-      
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+      teamEntity.members.push(userId);
+      this.teamsRepository.update(teamId, { members: teamEntity.members });
+      const team = this.teamsRepository.findOne(teamId);
+      if (!team) {
+        throw new NotFoundException(`Team with id ${teamId} not found`);
       }
+      return this.toTeamsResponseDto(team);
+    } catch (error) {
       throw new NotFoundException(`User with id ${userId} not found`);
     }
   }
 
   removeMember(teamId: number, userId: number) {
-    const team = this.findOne(teamId);
-    
+    const teamEntity = this.teamsRepository.findOne(teamId);
+    if (!teamEntity) {
+      throw new NotFoundException(`Team with id ${teamId} not found`);
+    }
     try {
-      // Verify user exists
       this.usersService.findOne(userId);
-      
-      if (!team.members) {
+      if (!teamEntity.members) {
         throw new NotFoundException(`No members in team with id ${teamId}`);
       }
-      
-      const memberIndex = team.members.indexOf(userId);
+      const memberIndex = teamEntity.members.indexOf(userId);
       if (memberIndex === -1) {
         throw new NotFoundException(`User ${userId} is not a member of team ${teamId}`);
       }
-      
-      // Remove user from team members
-      team.members.splice(memberIndex, 1);
-      return team;
-      
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
+      teamEntity.members.splice(memberIndex, 1);
+      this.teamsRepository.update(teamId, { members: teamEntity.members });
+      const team = this.teamsRepository.findOne(teamId);
+      if (!team) {
+        throw new NotFoundException(`Team with id ${teamId} not found`);
       }
+      return this.toTeamsResponseDto(team);
+    } catch (error) {
       throw new NotFoundException(`User with id ${userId} not found`);
     }
   }
 
   setCaptain(teamId: number, userId: number) {
-    const team = this.findOne(teamId);
-    if (!team.members) {
+    const teamEntity = this.teamsRepository.findOne(teamId);
+    if (!teamEntity) {
+      throw new NotFoundException(`Team with id ${teamId} not found`);
+    }
+    if (!teamEntity.members) {
       throw new Error(`No members in team with id ${teamId}`);
     }
-    const memberIndex = team.members.indexOf(userId);
+    const memberIndex = teamEntity.members.indexOf(userId);
     if (memberIndex === -1) {
       throw new Error(`User with id ${userId} not found in team with id ${teamId}`);
     }
-    team.currentCaptainId = userId;
-    return team;
+    teamEntity.currentCaptainId = userId;
+    this.teamsRepository.update(teamId, { currentCaptainId: userId });
+    const team = this.teamsRepository.findOne(teamId);
+    if (!team) {
+      throw new NotFoundException(`Team with id ${teamId} not found`);
+    }
+    return this.toTeamsResponseDto(team);
   }
 
   getMembers(teamId: number) {
-    const team = this.findOne(teamId);
-    if (!team.members) {
-      return [];
+    const team = this.teamsRepository.findOne(teamId);
+    if (!team) {
+      throw new NotFoundException(`Team with id ${teamId} not found`);
     }
-    
-    // Return detailed user information for each member
-    return Promise.all(
-      team.members.map(async (userId) => {
-        try {
-          return this.usersService.findOne(userId);
-        } catch (error) {
-          return null;
-        }
-      })
-    ).then(members => members.filter(member => member !== null));
+    return (team.members || []).map(userId => {
+      try {
+        return this.toPartialUser(this.usersService.findOne(userId));
+      } catch {
+        return undefined;
+      }
+    }).filter(Boolean);
   }
 }
