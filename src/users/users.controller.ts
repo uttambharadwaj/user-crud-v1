@@ -72,7 +72,7 @@ export class UsersController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a user by ID' })
   @ApiParam({ name: 'id', description: 'User ID', example: 1 })
-  @ApiResponse({ status: 200, description: 'User deleted', type: UsersResponseDto })
+  @ApiResponse({ status: 204, description: 'User deleted', type: UsersResponseDto })
   async remove(@Param('id') id: string) {
     return await this.usersService.remove(+id);
   }
