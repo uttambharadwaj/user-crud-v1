@@ -12,6 +12,12 @@ async function bootstrap() {
     .setTitle('User & Teams API')
     .setDescription('API documentation for Users and Teams management')
     .setVersion('1.0')
+    .addApiKey({
+      type: 'apiKey',
+      name: 'x-api-key',
+      in: 'header',
+      description: 'API key required for all endpoints (use "dummy-key")',
+    }, 'x-api-key')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
