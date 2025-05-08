@@ -74,6 +74,12 @@ describe('User & Teams API (e2e)', () => {
         .set('x-api-key', apiKey)
         .expect(200);
     });
+    it('should return 404 for non-existent user', async () => {
+      await request(app.getHttpServer())
+        .get('/users/99999')
+        .set('x-api-key', apiKey)
+        .expect(404);
+    });
   });
 
   describe('Teams', () => {
@@ -112,6 +118,20 @@ describe('User & Teams API (e2e)', () => {
       expect(res.body).toHaveProperty('page');
       expect(res.body).toHaveProperty('limit');
     });
+    it('should get a team by id', async () => {
+      await request(app.getHttpServer())
+        .get(`/teams/${teamId}`)
+        .set('x-api-key', apiKey)
+        .expect(200);
+    });
+    it('should get team members', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/teams/${teamId}/members`)
+        .set('x-api-key', apiKey)
+        .expect(200);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.length).toBeGreaterThan(0);
+    });
     it('should assign a captain to the team', async () => {
       await request(app.getHttpServer())
         .post(`/teams/${teamId}/captain/${userId}`)
@@ -124,11 +144,24 @@ describe('User & Teams API (e2e)', () => {
         .set('x-api-key', apiKey)
         .expect(200);
     });
+    it('should update a team', async () => {
+      await request(app.getHttpServer())
+        .patch(`/teams/${teamId}`)
+        .set('x-api-key', apiKey)
+        .send({ description: 'Updated description' })
+        .expect(200);
+    });
     it('should delete the team', async () => {
       await request(app.getHttpServer())
         .delete(`/teams/${teamId}`)
         .set('x-api-key', apiKey)
         .expect(200);
+    });
+    it('should return 404 for non-existent team', async () => {
+      await request(app.getHttpServer())
+        .get('/teams/99999')
+        .set('x-api-key', apiKey)
+        .expect(404);
     });
   });
 });
